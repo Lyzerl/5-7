@@ -177,14 +177,18 @@ class OrderManagementSystem {
         if (param8 > 0 && row['שיטת אירוז'] !== 'חמגשיות') {
             targetMeals = quantity / param8;
             
-            // עיגול לפי כללים
+            // עיגול לפי כללים - תמיד עיגול למטה קודם
             let roundedTarget = Math.floor(targetMeals);
-            if (this.allowOverage && targetMeals > 0) {
-                roundedTarget = Math.round(targetMeals);
-            }
             
+            // נסה אופטימיזציה עם הערך המעוגל
             if (roundedTarget > 0) {
                 optimizationResult = this.optimizePacks(roundedTarget, this.allowOverage);
+            }
+            
+            // אם אין פתרון ויש עודף מותר, נסה עם עיגול למעלה
+            if (!optimizationResult && this.allowOverage && targetMeals > 0) {
+                roundedTarget = Math.ceil(targetMeals);
+                optimizationResult = this.optimizePacks(roundedTarget, true);
             }
         }
 
@@ -212,6 +216,11 @@ class OrderManagementSystem {
             row['סה"כ אריזות'] = 0;
             row['עודף/פחת'] = 0;
         }
+
+        // חישוב מיכלים וחמגשיות
+        row['כמות מיכלים מחושב'] = parseFloat(row['כמות מיכלים']) || 0;
+        row['סוג מיכל'] = row['קוד מיכל'] || '';
+        row['שיטת אירוז מחושב'] = row['שיטת אירוז'] || '';
     }
 
     /**
@@ -417,7 +426,7 @@ class OrderManagementSystem {
             'הזמנה', 'תאריך', 'מס. לקוח', 'שם לקוח', 'פרמטר 1 ללקוח', 'פרמטר 2 ללקוח',
             'עיר', 'סניף', 'מק"ט', 'תאור מוצר', 'פרמטר 1 לקוד', 'פרמטר 6 למוצר',
             'כמות מוצר', 'פרמטר 8 למוצר', 'מנות לתכנון', 'אריזות 5', 'אריזות 7',
-            'סה"כ אריזות', 'עודף/פחת', 'סטטוס אופטימיזציה'
+            'סה"כ אריזות', 'עודף/פחת', 'סטטוס אופטימיזציה', 'שיטת אירוז', 'כמות מיכלים'
         ];
 
         tableHeader.innerHTML = headers.map(header => 
@@ -431,7 +440,7 @@ class OrderManagementSystem {
                     let value = row[header] || '';
                     
                     // עיגול מספרים מחושבים
-                    if (['כמות מוצר', 'מנות לתכנון', 'אריזות 5', 'אריזות 7', 'סה"כ אריזות', 'עודף/פחת'].includes(header)) {
+                    if (['כמות מוצר', 'מנות לתכנון', 'אריזות 5', 'אריזות 7', 'סה"כ אריזות', 'עודף/פחת', 'כמות מיכלים'].includes(header)) {
                         value = Math.round(parseFloat(value) || 0);
                     }
                     
@@ -515,6 +524,17 @@ class OrderManagementSystem {
             const totalPacks5 = rows.reduce((sum, row) => sum + (parseFloat(row['אריזות 5']) || 0), 0);
             const totalPacks7 = rows.reduce((sum, row) => sum + (parseFloat(row['אריזות 7']) || 0), 0);
             const totalPacks = totalPacks5 + totalPacks7;
+            
+            // סיכום מיכלים (לא חמגשיות)
+            const totalContainers = rows
+                .filter(row => row['שיטת אירוז'] !== 'חמגשיות')
+                .reduce((sum, row) => sum + (parseFloat(row['כמות מיכלים']) || 0), 0);
+            
+            // סיכום חמגשיות
+            const totalTrays = rows
+                .filter(row => row['שיטת אירוז'] === 'חמגשיות')
+                .reduce((sum, row) => sum + (parseFloat(row['כמות מיכלים']) || 0), 0);
+            
             const noSolutionCount = rows.filter(row => row['סטטוס אופטימיזציה'] === 'אין פתרון').length;
             const totalOverage = rows.reduce((sum, row) => sum + (parseFloat(row['עודף/פחת']) || 0), 0);
             
@@ -523,6 +543,8 @@ class OrderManagementSystem {
                 <td class="px-4 py-2 text-right">${Math.round(totalPacks5)}</td>
                 <td class="px-4 py-2 text-right">${Math.round(totalPacks7)}</td>
                 <td class="px-4 py-2 text-right">${Math.round(totalPacks)}</td>
+                <td class="px-4 py-2 text-right">${Math.round(totalContainers)}</td>
+                <td class="px-4 py-2 text-right">${Math.round(totalTrays)}</td>
                 <td class="px-4 py-2 text-right">${Math.round(noSolutionCount)}</td>
                 <td class="px-4 py-2 text-right">${Math.round(totalOverage)}</td>
             </tr>`;
