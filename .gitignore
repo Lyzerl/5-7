@@ -1,0 +1,18 @@
+# Excel temporary files
+~$*.xlsx
+~$*.xls
+*.tmp
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Log files
+*.log
+
+# Node modules (if using any)
+node_modules/

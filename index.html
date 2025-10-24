@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת ניהול הזמנות - עיבוד Excel</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SheetJS for Excel processing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <style>
+        /* RTL support and Hebrew fonts */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            direction: rtl;
+        }
+        
+        .rtl-input {
+            text-align: right;
+            direction: rtl;
+        }
+        
+        .table-container {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+        
+        .filter-chip {
+            display: inline-block;
+            background: #e5e7eb;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        
+        .filter-chip.active {
+            background: #3b82f6;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header Section -->
+    <header class="bg-white shadow-lg border-b-4 border-blue-600">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <!-- Title -->
+                <h1 class="text-3xl font-bold text-gray-800">מערכת ניהול הזמנות</h1>
+                
+                <!-- File Upload -->
+                <div class="flex items-center gap-4">
+                    <input type="file" id="excelFile" accept=".xlsx,.xls" class="hidden">
+                    <button id="uploadBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                        📁 ייבוא קובץ Excel
+                    </button>
+                    <button id="createSampleBtn" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium">
+                        📋 צור קובץ דוגמה
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Search and Settings Row -->
+            <div class="flex flex-wrap items-center gap-4 mt-4">
+                <!-- Search Input -->
+                <div class="flex-1 min-w-64">
+                    <input type="text" id="searchInput" placeholder="חיפוש לפי מספר הזמנה, לקוח או טלפון..." 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg rtl-input focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                
+                <!-- Toggle Settings -->
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="allowOverageToggle" class="w-4 h-4 text-blue-600">
+                        <span class="text-sm font-medium">מינימום פחת (עודף מותר)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- Order Card (shown when searching by order) -->
+        <div id="orderCard" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
+            <h2 class="text-xl font-bold mb-4">פרטי הזמנה</h2>
+            <div id="orderDetails" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+
+        <!-- Filters Section -->
+        <div id="filtersSection" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">סינונים</h2>
+                <button id="clearFiltersBtn" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                    נקה הכל
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Branch Filter -->
+                <div class="filter-group">
+                    <label class="block text-sm font-medium mb-2">סניף</label>
+                    <select id="branchFilter" multiple class="w-full border border-gray-300 rounded px-3 py-2">
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+                
+                <!-- City Filter -->
+                <div class="filter-group">
+                    <label class="block text-sm font-medium mb-2">עיר</label>
+                    <select id="cityFilter" multiple class="w-full border border-gray-300 rounded px-3 py-2">
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+                
+                <!-- Customer Type Filter -->
+                <div class="filter-group">
+                    <label class="block text-sm font-medium mb-2">סוג לקוח</label>
+                    <select id="customerTypeFilter" multiple class="w-full border border-gray-300 rounded px-3 py-2">
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+                
+                <!-- Product Category Filter -->
+                <div class="filter-group">
+                    <label class="block text-sm font-medium mb-2">קטגוריה</label>
+                    <select id="categoryFilter" multiple class="w-full border border-gray-300 rounded px-3 py-2">
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <!-- Export Buttons -->
+            <div class="flex gap-4 mb-4">
+                <button id="exportExcelBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    📊 ייצוא Excel
+                </button>
+                <button id="exportPdfBtn" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                    📄 ייצוא PDF
+                </button>
+            </div>
+
+            <!-- Main Data Table -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="table-container">
+                    <table id="mainTable" class="w-full">
+                        <thead class="sticky-header bg-gray-100">
+                            <tr id="tableHeader">
+                                <!-- Headers will be populated dynamically -->
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Data will be populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Section -->
+        <div id="reportsSection" class="mt-8 hidden">
+            <h2 class="text-2xl font-bold mb-6">דוחות</h2>
+            
+            <!-- Production Summary Report -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold">סיכום כמויות לייצור</h3>
+                    <select id="productionGroupBy" class="border border-gray-300 rounded px-3 py-2">
+                        <option value="sku">מק"ט</option>
+                        <option value="product">מוצר</option>
+                        <option value="category">קטגוריה</option>
+                        <option value="department">מחלקה</option>
+                        <option value="branch">סניף</option>
+                    </select>
+                </div>
+                <div class="table-container">
+                    <table id="productionTable" class="w-full">
+                        <thead class="sticky-header bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-2 text-right">מפתח קבוצה</th>
+                                <th class="px-4 py-2 text-right">כמות מוצר</th>
+                                <th class="px-4 py-2 text-right">מנות לתכנון</th>
+                                <th class="px-4 py-2 text-right">מנות אלרגניות</th>
+                                <th class="px-4 py-2 text-right">מנות צמחוניות</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productionTableBody">
+                            <!-- Data will be populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Packing Summary Report -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold">סיכום מארזים</h3>
+                    <select id="packingGroupBy" class="border border-gray-300 rounded px-3 py-2">
+                        <option value="sku">מק"ט</option>
+                        <option value="product">מוצר</option>
+                        <option value="category">קטגוריה</option>
+                        <option value="department">מחלקה</option>
+                        <option value="branch">סניף</option>
+                    </select>
+                </div>
+                <div class="table-container">
+                    <table id="packingTable" class="w-full">
+                        <thead class="sticky-header bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-2 text-right">מפתח קבוצה</th>
+                                <th class="px-4 py-2 text-right">סה"כ אריזות 5</th>
+                                <th class="px-4 py-2 text-right">סה"כ אריזות 7</th>
+                                <th class="px-4 py-2 text-right">סה"כ אריזות</th>
+                                <th class="px-4 py-2 text-right">ללא פתרון מדויק</th>
+                                <th class="px-4 py-2 text-right">סה"כ עודף</th>
+                            </tr>
+                        </thead>
+                        <tbody id="packingTableBody">
+                            <!-- Data will be populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-8 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-lg font-medium">מעבד נתונים...</p>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="sample-data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
