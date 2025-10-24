@@ -180,15 +180,19 @@ class OrderManagementSystem {
             // עיגול לפי כללים - תמיד עיגול למטה קודם
             let roundedTarget = Math.floor(targetMeals);
             
+            console.log(`חישוב עבור ${row['מק"ט']}: כמות=${quantity}, פרמטר8=${param8}, מנות לתכנון=${targetMeals}, מעוגל=${roundedTarget}`);
+            
             // נסה אופטימיזציה עם הערך המעוגל
             if (roundedTarget > 0) {
                 optimizationResult = this.optimizePacks(roundedTarget, this.allowOverage);
+                console.log(`תוצאת אופטימיזציה:`, optimizationResult);
             }
             
             // אם אין פתרון ויש עודף מותר, נסה עם עיגול למעלה
             if (!optimizationResult && this.allowOverage && targetMeals > 0) {
                 roundedTarget = Math.ceil(targetMeals);
                 optimizationResult = this.optimizePacks(roundedTarget, true);
+                console.log(`תוצאת אופטימיזציה עם עודף:`, optimizationResult);
             }
         }
 
@@ -230,6 +234,8 @@ class OrderManagementSystem {
      * @returns {Object|null}
      */
     optimizePacks(target, allowOverage = false) {
+        console.log(`אופטימיזציה עבור target=${target}, allowOverage=${allowOverage}`);
+        
         // פונקציה לבדיקה אם ניתן לייצג מספר באמצעות 5 ו-7
         const canRepresent = (n) => {
             for (let a = 0; a <= Math.floor(n/5); a++) {
@@ -248,9 +254,13 @@ class OrderManagementSystem {
 
         // שלב 1: נסה התאמה מדויקת
         const exact = canRepresent(target);
+        console.log(`התאמה מדויקת עבור ${target}:`, exact);
         if (exact) return exact;
 
-        if (!allowOverage) return null;
+        if (!allowOverage) {
+            console.log(`אין עודף מותר, מחזיר null`);
+            return null;
+        }
 
         // שלב 2: אפשר מינימום פחת (עודף)
         let n = target + 1;
@@ -259,6 +269,7 @@ class OrderManagementSystem {
         while (n <= maxTry) {
             const sol = canRepresent(n);
             if (sol) {
+                console.log(`מצאתי פתרון עם עודף עבור ${n}:`, sol);
                 return {
                     ...sol, 
                     exact: false, 
@@ -268,6 +279,7 @@ class OrderManagementSystem {
             n++;
         }
         
+        console.log(`לא מצאתי פתרון עד ${maxTry}`);
         return null;
     }
 
