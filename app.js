@@ -343,15 +343,18 @@ class OrderManagementSystem {
      */
     setupFilters() {
         const filterOptions = {
-            branchFilter: [...new Set(this.data.map(row => row['סניף']).filter(Boolean))],
-            cityFilter: [...new Set(this.data.map(row => row['עיר']).filter(Boolean))],
-            customerTypeFilter: [...new Set(this.data.map(row => row['פרמטר 1 ללקוח']).filter(Boolean))],
-            categoryFilter: [...new Set(this.data.map(row => row['פרמטר 1 לקוד']).filter(Boolean))]
+            branchFilter: [...new Set(this.data.map(row => row['סניף']).filter(Boolean))].sort(),
+            cityFilter: [...new Set(this.data.map(row => row['עיר']).filter(Boolean))].sort(),
+            customerTypeFilter: [...new Set(this.data.map(row => row['פרמטר 1 ללקוח']).filter(Boolean))].sort(),
+            categoryFilter: [...new Set(this.data.map(row => row['פרמטר 1 לקוד']).filter(Boolean))].sort()
         };
 
         Object.keys(filterOptions).forEach(filterId => {
             const select = document.getElementById(filterId);
+            // שמירת האופציה הראשונה (כל האפשרויות)
+            const firstOption = select.querySelector('option[value=""]');
             select.innerHTML = '';
+            select.appendChild(firstOption);
             
             filterOptions[filterId].forEach(option => {
                 const optionElement = document.createElement('option');
@@ -367,17 +370,17 @@ class OrderManagementSystem {
      */
     applyFilters() {
         const activeFilters = {
-            branch: Array.from(document.getElementById('branchFilter').selectedOptions).map(o => o.value),
-            city: Array.from(document.getElementById('cityFilter').selectedOptions).map(o => o.value),
-            customerType: Array.from(document.getElementById('customerTypeFilter').selectedOptions).map(o => o.value),
-            category: Array.from(document.getElementById('categoryFilter').selectedOptions).map(o => o.value)
+            branch: document.getElementById('branchFilter').value,
+            city: document.getElementById('cityFilter').value,
+            customerType: document.getElementById('customerTypeFilter').value,
+            category: document.getElementById('categoryFilter').value
         };
 
         this.filteredData = this.data.filter(row => {
-            return (!activeFilters.branch.length || activeFilters.branch.includes(row['סניף'])) &&
-                   (!activeFilters.city.length || activeFilters.city.includes(row['עיר'])) &&
-                   (!activeFilters.customerType.length || activeFilters.customerType.includes(row['פרמטר 1 ללקוח'])) &&
-                   (!activeFilters.category.length || activeFilters.category.includes(row['פרמטר 1 לקוד']));
+            return (!activeFilters.branch || row['סניף'] === activeFilters.branch) &&
+                   (!activeFilters.city || row['עיר'] === activeFilters.city) &&
+                   (!activeFilters.customerType || row['פרמטר 1 ללקוח'] === activeFilters.customerType) &&
+                   (!activeFilters.category || row['פרמטר 1 לקוד'] === activeFilters.category);
         });
 
         this.renderResults();
@@ -389,7 +392,7 @@ class OrderManagementSystem {
      */
     clearFilters() {
         ['branchFilter', 'cityFilter', 'customerTypeFilter', 'categoryFilter'].forEach(id => {
-            document.getElementById(id).selectedIndex = -1;
+            document.getElementById(id).value = '';
         });
         
         this.filteredData = [...this.data];
@@ -425,7 +428,13 @@ class OrderManagementSystem {
         tableBody.innerHTML = this.filteredData.map(row => {
             return `<tr class="border-b border-gray-100 hover:bg-gray-50">
                 ${headers.map(header => {
-                    const value = row[header] || '';
+                    let value = row[header] || '';
+                    
+                    // עיגול מספרים מחושבים
+                    if (['כמות מוצר', 'מנות לתכנון', 'אריזות 5', 'אריזות 7', 'סה"כ אריזות', 'עודף/פחת'].includes(header)) {
+                        value = Math.round(parseFloat(value) || 0);
+                    }
+                    
                     return `<td class="px-4 py-2 text-right">${value}</td>`;
                 }).join('')}
             </tr>`;
@@ -449,17 +458,47 @@ class OrderManagementSystem {
         
         const tableBody = document.getElementById('productionTableBody');
         tableBody.innerHTML = Object.entries(grouped).map(([key, rows]) => {
+            // סיכום כמות מוצר
             const totalQuantity = rows.reduce((sum, row) => sum + (parseFloat(row['כמות מוצר']) || 0), 0);
-            const totalTargetMeals = rows.reduce((sum, row) => sum + (parseFloat(row['מנות לתכנון']) || 0), 0);
-            const totalAllergenic = rows.reduce((sum, row) => sum + (parseFloat(row['מספר מנות אלרגניות']) || 0), 0);
-            const totalVegetarian = rows.reduce((sum, row) => sum + (parseFloat(row['מספר מנות צמחוניות']) || 0), 0);
+            
+            // סיכום כמות מנות לפריט (מספר מנות לשורה)
+            const totalMealsPerItem = rows.reduce((sum, row) => sum + (parseFloat(row['מספר מנות לשורה']) || 0), 0);
+            
+            // סיכום סה"כ מנות היום (מספר מנות כללי) - רק מהפריט הראשון בכל הזמנה
+            const orderGroups = {};
+            rows.forEach(row => {
+                const orderNum = row['הזמנה'];
+                if (!orderGroups[orderNum]) {
+                    orderGroups[orderNum] = [];
+                }
+                orderGroups[orderNum].push(row);
+            });
+            
+            const totalMealsToday = Object.values(orderGroups).reduce((sum, orderRows) => {
+                // לוקחים רק את הפריט הראשון בכל הזמנה
+                const firstRow = orderRows[0];
+                return sum + (parseFloat(firstRow['מספר מנות כללי']) || 0);
+            }, 0);
+            
+            // סיכום מנות אלרגניות - רק מהפריט הראשון בכל הזמנה
+            const totalAllergenic = Object.values(orderGroups).reduce((sum, orderRows) => {
+                const firstRow = orderRows[0];
+                return sum + (parseFloat(firstRow['מספר מנות אלרגניות']) || 0);
+            }, 0);
+            
+            // סיכום מנות צמחוניות - רק מהפריט הראשון בכל הזמנה
+            const totalVegetarian = Object.values(orderGroups).reduce((sum, orderRows) => {
+                const firstRow = orderRows[0];
+                return sum + (parseFloat(firstRow['מספר מנות צמחוניות']) || 0);
+            }, 0);
             
             return `<tr class="border-b border-gray-100">
                 <td class="px-4 py-2 text-right font-medium">${key}</td>
-                <td class="px-4 py-2 text-right">${totalQuantity.toFixed(2)}</td>
-                <td class="px-4 py-2 text-right">${totalTargetMeals.toFixed(2)}</td>
-                <td class="px-4 py-2 text-right">${totalAllergenic}</td>
-                <td class="px-4 py-2 text-right">${totalVegetarian}</td>
+                <td class="px-4 py-2 text-right">${Math.round(totalQuantity)}</td>
+                <td class="px-4 py-2 text-right">${Math.round(totalMealsPerItem)}</td>
+                <td class="px-4 py-2 text-right">${Math.round(totalMealsToday)}</td>
+                <td class="px-4 py-2 text-right">${Math.round(totalAllergenic)}</td>
+                <td class="px-4 py-2 text-right">${Math.round(totalVegetarian)}</td>
             </tr>`;
         }).join('');
     }
@@ -481,11 +520,11 @@ class OrderManagementSystem {
             
             return `<tr class="border-b border-gray-100">
                 <td class="px-4 py-2 text-right font-medium">${key}</td>
-                <td class="px-4 py-2 text-right">${totalPacks5}</td>
-                <td class="px-4 py-2 text-right">${totalPacks7}</td>
-                <td class="px-4 py-2 text-right">${totalPacks}</td>
-                <td class="px-4 py-2 text-right">${noSolutionCount}</td>
-                <td class="px-4 py-2 text-right">${totalOverage}</td>
+                <td class="px-4 py-2 text-right">${Math.round(totalPacks5)}</td>
+                <td class="px-4 py-2 text-right">${Math.round(totalPacks7)}</td>
+                <td class="px-4 py-2 text-right">${Math.round(totalPacks)}</td>
+                <td class="px-4 py-2 text-right">${Math.round(noSolutionCount)}</td>
+                <td class="px-4 py-2 text-right">${Math.round(totalOverage)}</td>
             </tr>`;
         }).join('');
     }

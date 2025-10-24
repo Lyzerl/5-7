@@ -117,33 +117,65 @@
                 <!-- Branch Filter -->
                 <div class="filter-group">
                     <label class="block text-sm font-medium mb-2">סניף</label>
-                    <select id="branchFilter" multiple class="w-full border border-gray-300 rounded px-3 py-2">
-                        <!-- Options will be populated dynamically -->
-                    </select>
+                    <div class="relative">
+                        <select id="branchFilter" class="w-full border border-gray-300 rounded px-3 py-2 appearance-none bg-white">
+                            <option value="">כל הסניפים</option>
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                        <div class="absolute inset-y-0 left-0 flex items-center px-2 pointer-events-none">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- City Filter -->
                 <div class="filter-group">
                     <label class="block text-sm font-medium mb-2">עיר</label>
-                    <select id="cityFilter" multiple class="w-full border border-gray-300 rounded px-3 py-2">
-                        <!-- Options will be populated dynamically -->
-                    </select>
+                    <div class="relative">
+                        <select id="cityFilter" class="w-full border border-gray-300 rounded px-3 py-2 appearance-none bg-white">
+                            <option value="">כל הערים</option>
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                        <div class="absolute inset-y-0 left-0 flex items-center px-2 pointer-events-none">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Customer Type Filter -->
                 <div class="filter-group">
                     <label class="block text-sm font-medium mb-2">סוג לקוח</label>
-                    <select id="customerTypeFilter" multiple class="w-full border border-gray-300 rounded px-3 py-2">
-                        <!-- Options will be populated dynamically -->
-                    </select>
+                    <div class="relative">
+                        <select id="customerTypeFilter" class="w-full border border-gray-300 rounded px-3 py-2 appearance-none bg-white">
+                            <option value="">כל סוגי הלקוחות</option>
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                        <div class="absolute inset-y-0 left-0 flex items-center px-2 pointer-events-none">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Product Category Filter -->
                 <div class="filter-group">
                     <label class="block text-sm font-medium mb-2">קטגוריה</label>
-                    <select id="categoryFilter" multiple class="w-full border border-gray-300 rounded px-3 py-2">
-                        <!-- Options will be populated dynamically -->
-                    </select>
+                    <div class="relative">
+                        <select id="categoryFilter" class="w-full border border-gray-300 rounded px-3 py-2 appearance-none bg-white">
+                            <option value="">כל הקטגוריות</option>
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                        <div class="absolute inset-y-0 left-0 flex items-center px-2 pointer-events-none">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -199,9 +231,10 @@
                             <tr>
                                 <th class="px-4 py-2 text-right">מפתח קבוצה</th>
                                 <th class="px-4 py-2 text-right">כמות מוצר</th>
-                                <th class="px-4 py-2 text-right">מנות לתכנון</th>
-                                <th class="px-4 py-2 text-right">מנות אלרגניות</th>
-                                <th class="px-4 py-2 text-right">מנות צמחוניות</th>
+                                <th class="px-4 py-2 text-right">כמות מנות לפריט</th>
+                                <th class="px-4 py-2 text-right">סה"כ מנות היום</th>
+                                <th class="px-4 py-2 text-right">סה"כ מנות אלרגניות</th>
+                                <th class="px-4 py-2 text-right">סה"כ מנות צמחוניות</th>
                             </tr>
                         </thead>
                         <tbody id="productionTableBody">
